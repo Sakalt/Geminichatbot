@@ -149,7 +149,7 @@
                 return;
             }
 
-            const endpoint = baseEndpoint + apiKey;
+            const endpoint = `${baseEndpoint}${apiKey}`;
             fetchChatbotResponse(messageText, endpoint);
         }
 
@@ -159,7 +159,7 @@
                 headers: {
                     'Content-Type': 'application/json'
                 },
-                body: JSON.stringify({ message: message })
+                body: JSON.stringify({ prompt: message, maxOutputTokens: 50 })
             })
             .then(response => {
                 if (!response.ok) {
@@ -168,7 +168,7 @@
                 return response.json();
             })
             .then(data => {
-                const botMessage = { sender: 'bot', text: data.reply || 'No response' };
+                const botMessage = { sender: 'bot', text: data.generatedText || 'No response' };
                 chatRooms[currentRoom].push(botMessage);
                 displayMessage(botMessage);
                 saveChatRooms();
