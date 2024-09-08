@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gemini Chatbot</title>
+    <style>
+        /* 基本スタイル */
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            background-color: #f4f4f4;
+        }
+        .chat-container {
+            width: 90%;
+            max-width: 800px;
+            margin: 20px;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            background-color: #fff;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        }
+        .chat-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px;
+            border-bottom: 1px solid #ddd;
+        }
+        .chat-rooms {
+            margin: 10px 0;
+        }
+        .messages {
+            height: 400px;
+            overflow-y: auto;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            margin-bottom: 10px;
+        }
+        .message {
+            padding: 5px;
+            margin: 5px 0;
+            border-radius: 4px;
+        }
+        .user-message {
+            background-color: #d1e7dd;
+            text-align: right;
+        }
+        .bot-message {
+            background-color: #f8d7da;
+            text-align: left;
+        }
+        .controls {
+            display: flex;
+            justify-content: space-between;
+        }
+        .input-area {
+            flex: 1;
+            margin-right: 5px;
+        }
+        .settings {
+            margin-bottom: 10px;
+        }
+    </style>
+</head>
+<body>
+    <div class="chat-container">
+        <div class="chat-header">
+            <h2>Gemini Chatbot</h2>
+            <select id="language-select">
+                <option value="en">English</option>
+                <option value="ja">日本語</option>
+            </select>
+        </div>
+        <div class="settings">
+            <input type="text" id="api-key" placeholder="APIキーを入力してください" style="width: calc(100% - 20px);">
+        </div>
+        <div class="chat-rooms">
+            <button onclick="addRoom()">+ ルーム追加</button>
+            <div id="rooms-container"></div>
+        </div>
+        <div class="messages" id="messages">
+            <!-- メッセージがここに表示される -->
+        </div>
+        <div class="controls">
+            <input type="text" id="user-input" class="input-area" placeholder="メッセージを入力...">
+            <button onclick="sendMessage()">送信</button>
+            <button onclick="resetChat()">リセット</button>
+        </div>
+    </div>
+
+    <script>
+        const baseEndpoint = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent?key=';
+        let currentRoom = 'default';
+        let chatRooms = JSON.parse(localStorage.getItem('chatRooms')) || { 'default': [] };
+
+        function addRoom() {
+            const roomName = prompt('新しいルーム名を入力してください:');
+            if (roomName && !chatRooms[roomName]) {
+                chatRooms[roomName] = [];
+                saveChatRooms();
+                updateRooms();
+            }
+        }
+
+        function updateRooms() {
+            const roomsContainer = document.getElementById('rooms-container');
+            roomsContainer.innerHTML = '';
+            Object.keys(chatRooms).forEach(room => {
+                const roomButton = document.createElement('button');
+                roomButton.textContent = room;
+                roomButton.onclick = () => changeRoom(room);
+                roomsContainer.appendChild(roomButton);
+            });
+        }
+
+        function changeRoom(room) {
+            currentRoom = room;
+            document.getElementById('messages').innerHTML = '';
+            chatRooms[room].forEach(message => displayMessage(message));
+        }
+
+        function displayMessage(message) {
+            const messageDiv = document.createElement('div');
+            messageDiv.className = message.sender === 'user' ? 'message user-message' : 'message bot-message';
+            messageDiv.textContent = message.text;
+            document.getElementById('messages').appendChild(messageDiv);
+        }
+
+        function sendMessage() {
+            const userInput = document.getElementById('user-input');
+            const messageText = userInput.value;
+            if (!messageText.trim()) return;
+
+            const message = { sender: 'user', text: messageText };
+            chatRooms[currentRoom].push(message);
+            displayMessage(message);
+            userInput.value = '';
+
+            const apiKey = document.getElementById('api-key').value;
+            if (!apiKey) {
+                alert('APIキーを入力してください。');
+                return;
+            }
+
+            const endpoint = baseEndpoint + apiKey;
+            fetchChatbotResponse(messageText, endpoint);
+        }
+
+        function fetchChatbotResponse(message, endpoint) {
+            fetch(endpoint, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ message: message })
+            })
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error(`HTTPエラー: ${response.status}`);
+                }
+                return response.json();
+            })
+            .then(data => {
+                const botMessage = { sender: 'bot', text: data.reply || 'No response' };
+                chatRooms[currentRoom].push(botMessage);
+                displayMessage(botMessage);
+                saveChatRooms();
+            })
+            .catch(error => {
+                console.error('Error fetching response:', error);
+                alert('AIの応答を取得できませんでした。APIキーを確認してください。');
+            });
+        }
+
+        function resetChat() {
+            if (confirm('現在のチャットをリセットしますか？この操作は元に戻せません。')) {
+                chatRooms[currentRoom] = [];
+                document.getElementById('messages').innerHTML = '';
+                saveChatRooms();
+            }
+        }
+
+        document.getElementById('language-select').addEventListener('change', (event) => {
+            const lang = event.target.value;
+            if (lang === 'en') {
+                document.querySelector('h2').textContent = 'Gemini Chatbot';
+                document.getElementById('user-input').placeholder = 'Enter your message...';
+                document.querySelector('button[onclick="sendMessage()"]').textContent = 'Send';
+                document.querySelector('button[onclick="resetChat()"]').textContent = 'Reset';
+            } else {
+                document.querySelector('h2').textContent = 'ジェミニチャットボット';
+                document.getElementById('user-input').placeholder = 'メッセージを入力...';
+                document.querySelector('button[onclick="sendMessage()"]').textContent = '送信';
+                document.querySelector('button[onclick="resetChat()"]').textContent = 'リセット';
+            }
+        });
+
+        function saveChatRooms() {
+            localStorage.setItem('chatRooms', JSON.stringify(chatRooms));
+        }
+
+        updateRooms();
+        changeRoom(currentRoom);
+    </script>
+</body>
+</html>
