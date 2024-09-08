@@ -149,7 +149,7 @@
                 return;
             }
 
-            const endpoint = `${baseEndpoint}${apiKey}`;
+            const endpoint = baseEndpoint + apiKey;
             fetchChatbotResponse(messageText, endpoint);
         }
 
@@ -159,7 +159,10 @@
                 headers: {
                     'Content-Type': 'application/json'
                 },
-                body: JSON.stringify({ prompt: message, maxOutputTokens: 50 })
+                body: JSON.stringify({
+                    prompt: message,
+                    maxOutputTokens: 50  // 適切なトークン数に調整してください
+                })
             })
             .then(response => {
                 if (!response.ok) {
