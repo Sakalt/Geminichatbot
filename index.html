@@ -47,6 +47,7 @@
             padding: 5px;
             margin: 5px 0;
             border-radius: 4px;
+            cursor: pointer;
         }
         .user-message {
             background-color: #d1e7dd;
@@ -83,6 +84,7 @@
         </div>
         <div class="chat-rooms">
             <button onclick="addRoom()">+ ルーム追加</button>
+            <button onclick="deleteRoom()">- ルーム削除</button>
             <div id="rooms-container"></div>
         </div>
         <div class="messages" id="messages">
@@ -109,6 +111,20 @@
             }
         }
 
+        function deleteRoom() {
+            const roomName = prompt('削除するルーム名を入力してください:');
+            if (roomName && chatRooms[roomName] && roomName !== 'default') {
+                delete chatRooms[roomName];
+                saveChatRooms();
+                updateRooms();
+                if (currentRoom === roomName) {
+                    changeRoom('default');
+                }
+            } else if (roomName === 'default') {
+                alert('デフォルトのルームは削除できません。');
+            }
+        }
+
         function updateRooms() {
             const roomsContainer = document.getElementById('rooms-container');
             roomsContainer.innerHTML = '';
@@ -130,7 +146,21 @@
             const messageDiv = document.createElement('div');
             messageDiv.className = message.sender === 'user' ? 'message user-message' : 'message bot-message';
             messageDiv.textContent = message.text;
+            messageDiv.onclick = () => editMessage(message);
             document.getElementById('messages').appendChild(messageDiv);
+        }
+
+        function editMessage(message) {
+            if (message.sender === 'user') {
+                const newMessageText = prompt('メッセージを編集してください:', message.text);
+                if (newMessageText !== null) {
+                    message.text = newMessageText;
+                    chatRooms[currentRoom] = chatRooms[currentRoom].map(msg => msg === message ? message : msg);
+                    saveChatRooms();
+                    document.getElementById('messages').innerHTML = '';
+                    chatRooms[currentRoom].forEach(msg => displayMessage(msg));
+                }
+            }
         }
 
         function sendMessage() {
@@ -149,7 +179,7 @@
                 return;
             }
 
-            const endpoint = baseEndpoint + apiKey;
+            const endpoint = `${baseEndpoint}${apiKey}`;
             fetchChatbotResponse(messageText, endpoint);
         }
 
