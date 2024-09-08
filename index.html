@@ -97,6 +97,7 @@
         </div>
     </div>
 
+    <script src="plugin/math.js"></script>
     <script>
         const baseEndpoint = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent?key=';
         let currentRoom = 'default';
@@ -145,9 +146,19 @@
         function displayMessage(message) {
             const messageDiv = document.createElement('div');
             messageDiv.className = message.sender === 'user' ? 'message user-message' : 'message bot-message';
-            messageDiv.textContent = message.text;
+            messageDiv.innerHTML = message.text;
             messageDiv.onclick = () => editMessage(message);
             document.getElementById('messages').appendChild(messageDiv);
+
+            // KaTeXによる数式のレンダリング
+            renderMathInElement(messageDiv, {
+                delimiters: [
+                    { left: "$$", right: "$$", display: true },
+                    { left: "\\[", right: "\\]", display: true },
+                    { left: "$", right: "$", display: false },
+                    { left: "\\(", right: "\\)", display: false }
+                ]
+            });
         }
 
         function editMessage(message) {
