@@ -149,7 +149,7 @@
         function displayMessage(message) {
             const messageDiv = document.createElement('div');
             messageDiv.className = message.sender === 'user' ? 'message user-message' : 'message bot-message';
-            messageDiv.innerHTML = message.text;
+            messageDiv.textContent = message.text; // XSS対策のためtextContentを使用
             messageDiv.onclick = () => editMessage(message);
             document.getElementById('messages').appendChild(messageDiv);
 
@@ -244,7 +244,7 @@
                 'deleteRoomPrompt': currentLanguage === 'en' ? 'Enter the room name to delete:' : '削除するルーム名を入力してください:',
                 'defaultRoomError': currentLanguage === 'en' ? 'Default room cannot be deleted.' : 'デフォルトのルームは削除できません。',
                 'editMessagePrompt': currentLanguage === 'en' ? 'Edit your message:' : 'メッセージを編集してください:',
-                'missingApiKey': currentLanguage === 'en' ? 'Please enter an API key.' : 'APIキーを入力してください。',
+                'missingApiKey': currentLanguage === 'en' ? 'Please enter the API key.' : 'APIキーを入力してください。',
                 'noResponse': currentLanguage === 'en' ? 'No response from AI.' : 'AIからの応答がありません。',
                 'resetChatConfirm': currentLanguage === 'en' ? 'Are you sure you want to reset the chat?' : 'チャットをリセットしてもよろしいですか？'
             };
