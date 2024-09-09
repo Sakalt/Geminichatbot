@@ -74,15 +74,18 @@
     <div class="chat-container">
         <div class="chat-header">
             <h2>Gemini Chatbot</h2>
+            <!-- 言語選択 -->
             <select id="language-select">
                 <option value="en">English</option>
                 <option value="ja">日本語</option>
             </select>
         </div>
         <div class="settings">
+            <!-- APIキーの入力 -->
             <input type="text" id="api-key" placeholder="APIキーを入力してください" style="width: calc(100% - 20px);">
         </div>
         <div class="chat-rooms">
+            <!-- ルームの追加・削除ボタン -->
             <button onclick="addRoom()">+ ルーム追加</button>
             <button onclick="deleteRoom()">- ルーム削除</button>
             <div id="rooms-container"></div>
@@ -91,18 +94,25 @@
             <!-- メッセージがここに表示される -->
         </div>
         <div class="controls">
+            <!-- メッセージの入力と操作ボタン -->
             <input type="text" id="user-input" class="input-area" placeholder="メッセージを入力...">
             <button onclick="sendMessage()">送信</button>
             <button onclick="resetChat()">リセット</button>
         </div>
     </div>
 
+    <!-- Mathレンダリング用プラグイン -->
     <script src="plugin/math.js"></script>
-    <script>
-        const baseEndpoint = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent?key=';
-        let currentRoom = 'default';
-        let chatRooms = JSON.parse(localStorage.getItem('chatRooms')) || { 'default': [] };
+    <!-- DOMPurifyを使用してXSS攻撃を防止 -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/dompurify/2.3.10/purify.min.js"></script>
 
+    <script>
+        // 基本のエンドポイントURL
+        const baseEndpoint = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent?key=';
+        let currentRoom = 'default';  // 現在のルーム
+        let chatRooms = JSON.parse(localStorage.getItem('chatRooms')) || { 'default': [] };  // 保存されたチャットルーム
+
+        // 新しいルームを追加
         function addRoom() {
             const roomName = prompt('新しいルーム名を入力してください:');
             if (roomName && !chatRooms[roomName]) {
@@ -112,6 +122,7 @@
             }
         }
 
+        // ルームを削除
         function deleteRoom() {
             const roomName = prompt('削除するルーム名を入力してください:');
             if (roomName && chatRooms[roomName] && roomName !== 'default') {
@@ -126,6 +137,7 @@
             }
         }
 
+        // ルーム一覧を更新
         function updateRooms() {
             const roomsContainer = document.getElementById('rooms-container');
             roomsContainer.innerHTML = '';
@@ -137,16 +149,19 @@
             });
         }
 
+        // ルームを変更
         function changeRoom(room) {
             currentRoom = room;
             document.getElementById('messages').innerHTML = '';
             chatRooms[room].forEach(message => displayMessage(message));
         }
 
+        // メッセージを表示
         function displayMessage(message) {
             const messageDiv = document.createElement('div');
             messageDiv.className = message.sender === 'user' ? 'message user-message' : 'message bot-message';
-            messageDiv.innerHTML = message.text;
+            // メッセージを安全に表示
+            messageDiv.innerHTML = DOMPurify.sanitize(message.text);
             messageDiv.onclick = () => editMessage(message);
             document.getElementById('messages').appendChild(messageDiv);
 
@@ -161,11 +176,12 @@
             });
         }
 
+        // メッセージを編集
         function editMessage(message) {
             if (message.sender === 'user') {
                 const newMessageText = prompt('メッセージを編集してください:', message.text);
                 if (newMessageText !== null) {
-                    message.text = newMessageText;
+                    message.text = DOMPurify.sanitize(newMessageText);  // メッセージを安全に変更
                     chatRooms[currentRoom] = chatRooms[currentRoom].map(msg => msg === message ? message : msg);
                     saveChatRooms();
                     document.getElementById('messages').innerHTML = '';
@@ -174,12 +190,13 @@
             }
         }
 
+        // メッセージを送信
         async function sendMessage() {
             const userInput = document.getElementById('user-input');
             const messageText = userInput.value;
             if (!messageText.trim()) return;
 
-            const message = { sender: 'user', text: messageText };
+            const message = { sender: 'user', text: DOMPurify.sanitize(messageText) };  // ユーザーメッセージのサニタイズ
             chatRooms[currentRoom].push(message);
             displayMessage(message);
             userInput.value = '';
@@ -194,13 +211,14 @@
             if (response.error) {
                 alert(response.error);
             } else {
-                const botMessage = { sender: 'bot', text: response.generatedText || 'No response' };
+                const botMessage = { sender: 'bot', text: DOMPurify.sanitize(response.generatedText || 'No response') };
                 chatRooms[currentRoom].push(botMessage);
                 displayMessage(botMessage);
                 saveChatRooms();
             }
         }
 
+        // APIリクエストを送信
         async function sendRequest(apiKey, prompt) {
             try {
                 const response = await fetch(`${baseEndpoint}${apiKey}`, {
@@ -208,7 +226,7 @@
                     headers: {
                         'Content-Type': 'application/json',
                     },
-                    body: JSON.stringify({ prompt: { text: prompt } }) // リクエストボディの修正
+                    body: JSON.stringify({ prompt: { text: prompt } })  // リクエストボディの修正
                 });
 
                 if (!response.ok) {
@@ -216,7 +234,7 @@
                 }
 
                 const data = await response.json();
-                console.log('API response:', data); // ログ追加
+                console.log('API response:', data);  // ログ追加
 
                 if (data.error) {
                     return { error: `APIエラー: ${data.error.message}` };
@@ -228,40 +246,32 @@
                     return { error: '応答がありません' };
                 }
             } catch (error) {
-                console.error('フェッチエラー:', error); // ログ追加
-                return { error: `フェッチエラー: ${error.message}` };
+                console.error('リクエストエラー:', error);  // エラーの詳細をログに出力
+                return { error: `リクエストエラー: ${error.message}` };
             }
         }
 
-        function resetChat() {
-            if (confirm('現在のチャットをリセットしますか？この操作は元に戻せません。')) {
-                chatRooms[currentRoom] = [];
-                document.getElementById('messages').innerHTML = '';
-                saveChatRooms();
-            }
-        }
-
-        document.getElementById('language-select').addEventListener('change', (event) => {
-            const lang = event.target.value;
-            if (lang === 'en') {
-                document.querySelector('h2').textContent = 'Gemini Chatbot';
-                document.getElementById('user-input').placeholder = 'Enter your message...';
-                document.querySelector('button[onclick="sendMessage()"]').textContent = 'Send';
-                document.querySelector('button[onclick="resetChat()"]').textContent = 'Reset';
-            } else {
-                document.querySelector('h2').textContent = 'ジェミニチャットボット';
-                document.getElementById('user-input').placeholder = 'メッセージを入力...';
-                document.querySelector('button[onclick="sendMessage()"]').textContent = '送信';
-                document.querySelector('button[onclick="resetChat()"]').textContent = 'リセット';
-            }
-        });
-
+        // チャットの保存
         function saveChatRooms() {
             localStorage.setItem('chatRooms', JSON.stringify(chatRooms));
         }
 
-        updateRooms();
-        changeRoom(currentRoom);
+        // チャットをリセット
+        function resetChat() {
+            if (confirm('本当にチャットをリセットしますか？')) {
+                chatRooms = { 'default': [] };
+                currentRoom = 'default';
+                saveChatRooms();
+                updateRooms();
+                document.getElementById('messages').innerHTML = '';
+            }
+        }
+
+        // 初期化処理
+        window.onload = () => {
+            updateRooms();  // ルームの更新
+            changeRoom('default');  // デフォルトルームの選択
+        };
     </script>
 </body>
 </html>
