@@ -101,8 +101,10 @@
     <script>
         const baseEndpoint = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent?key=';
         let currentRoom = 'default';
-        let chatRooms = JSON.parse(localStorage.getItem('chatRooms')) || { 'default': [] };
         let currentLanguage = 'ja';
+
+        // ローカルストレージからチャットルームとメッセージを読み込み
+        let chatRooms = JSON.parse(localStorage.getItem('chatRooms')) || { 'default': [] };
 
         function addRoom() {
             const roomName = prompt(getText('newRoomPrompt'));
@@ -194,6 +196,8 @@
             if (response.error) {
                 alert(response.error);
             } else {
+                // デバッグ用アラート
+                alert('AI Response: ' + JSON.stringify(response));
                 const botMessageText = response.candidates?.[0]?.output || getText('noResponse');
                 const botMessage = { sender: 'bot', text: botMessageText };
                 chatRooms[currentRoom].push(botMessage);
@@ -217,7 +221,6 @@
                 }
 
                 const data = await response.json();
-
                 if (data.error) {
                     return { error: `APIエラー: ${data.error.message}` };
                 }
@@ -243,30 +246,21 @@
                 'defaultRoomError': currentLanguage === 'en' ? 'Default room cannot be deleted.' : 'デフォルトのルームは削除できません。',
                 'editMessagePrompt': currentLanguage === 'en' ? 'Edit your message:' : 'メッセージを編集してください:',
                 'missingApiKey': currentLanguage === 'en' ? 'Please enter an API key.' : 'APIキーを入力してください。',
-                'noResponse': currentLanguage === 'en' ? 'No response' : '応答がありません',
-                'resetChatConfirm': currentLanguage === 'en' ? 'Are you sure you want to reset the chat? This action cannot be undone.' : '現在のチャットをリセットしますか？この操作は元に戻せません。'
+                'noResponse': currentLanguage === 'en' ? 'No response from AI.' : 'AIからの応答がありません。',
+                'resetChatConfirm': currentLanguage === 'en' ? 'Are you sure you want to reset the chat?' : 'チャットをリセットしてもよろしいですか？'
             };
-            return texts[key];
-        }
-
-        document.getElementById('language-select').addEventListener('change', (event) => {
-            currentLanguage = event.target.value;
-            updateUI();
-        });
-
-        function updateUI() {
-            document.getElementById('chat-title').textContent = currentLanguage === 'en' ? 'Gemini Chatbot' : 'ジェミニチャットボット';
-            document.getElementById('user-input').placeholder = currentLanguage === 'en' ? 'Enter your message...' : 'メッセージを入力...';
-            document.getElementById('send-btn').textContent = currentLanguage === 'en' ? 'Send' : '送信';
-            document.getElementById('reset-btn').textContent = currentLanguage === 'en' ? 'Reset' : 'リセット';
-            document.getElementById('add-room-btn').textContent = currentLanguage === 'en' ? '+ Add Room' : '+ ルーム追加';
-            document.getElementById('delete-room-btn').textContent = currentLanguage === 'en' ? '- Delete Room' : '- ルーム削除';
+            return texts[key] || key;
         }
 
         function saveChatRooms() {
             localStorage.setItem('chatRooms', JSON.stringify(chatRooms));
         }
 
+        document.getElementById('language-select').addEventListener('change', (event) => {
+            currentLanguage = event.target.value;
+        });
+
+        // 初期化
         updateRooms();
         changeRoom(currentRoom);
     </script>
