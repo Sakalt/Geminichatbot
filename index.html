@@ -196,8 +196,7 @@
             if (response.error) {
                 alert(response.error);
             } else {
-                // デバッグ用アラート
-                alert('AI Response: ' + JSON.stringify(response));
+                // AIからの応答を表示
                 const botMessageText = response.candidates?.[0]?.output || getText('noResponse');
                 const botMessage = { sender: 'bot', text: botMessageText };
                 chatRooms[currentRoom].push(botMessage);
@@ -258,6 +257,12 @@
 
         document.getElementById('language-select').addEventListener('change', (event) => {
             currentLanguage = event.target.value;
+            document.getElementById('chat-title').textContent = getText('chatTitle');
+            document.getElementById('user-input').placeholder = getText('userInputPlaceholder');
+            document.getElementById('send-btn').textContent = getText('sendBtn');
+            document.getElementById('reset-btn').textContent = getText('resetBtn');
+            document.getElementById('add-room-btn').textContent = getText('addRoomBtn');
+            document.getElementById('delete-room-btn').textContent = getText('deleteRoomBtn');
         });
 
         // 初期化
