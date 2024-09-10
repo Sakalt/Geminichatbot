@@ -5,7 +5,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Gemini Chatbot</title>
     <style>
-        /* 基本スタイル */
         body {
             font-family: Arial, sans-serif;
             margin: 0;
@@ -74,46 +73,34 @@
     <div class="chat-container">
         <div class="chat-header">
             <h2>Gemini Chatbot</h2>
-            <!-- 言語選択 -->
             <select id="language-select">
                 <option value="en">English</option>
                 <option value="ja" selected>日本語</option>
             </select>
         </div>
         <div class="settings">
-            <!-- APIキーの入力 -->
             <input type="text" id="api-key" placeholder="APIキーを入力してください" style="width: calc(100% - 20px);">
         </div>
         <div class="chat-rooms">
-            <!-- ルームの追加・削除ボタン -->
             <button onclick="addRoom()">+ ルーム追加</button>
             <button onclick="deleteRoom()">- ルーム削除</button>
             <div id="rooms-container"></div>
         </div>
-        <div class="messages" id="messages">
-            <!-- メッセージがここに表示される -->
-        </div>
+        <div class="messages" id="messages"></div>
         <div class="controls">
-            <!-- メッセージの入力と操作ボタン -->
             <input type="text" id="user-input" class="input-area" placeholder="メッセージを入力...">
             <button onclick="sendMessage()">送信</button>
             <button onclick="resetChat()">リセット</button>
         </div>
     </div>
 
-    <!-- Mathレンダリング用プラグイン -->
-    <script src="plugin/math.js"></script>
-    <!-- DOMPurifyを使用してXSS攻撃を防止 -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/dompurify/2.3.10/purify.min.js"></script>
-
     <script>
-        // 基本のエンドポイントURL
         const baseEndpoint = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent?key=';
-        let currentRoom = localStorage.getItem('currentRoom') || 'default';  // 現在のルーム
-        let chatRooms = JSON.parse(localStorage.getItem('chatRooms')) || { 'default': [] };  // 保存されたチャットルーム
-        let language = localStorage.getItem('language') || 'ja';  // デフォルト言語
+        let currentRoom = localStorage.getItem('currentRoom') || 'default';
+        let chatRooms = JSON.parse(localStorage.getItem('chatRooms')) || { 'default': [] };
+        let language = localStorage.getItem('language') || 'ja';
 
-        // 言語に基づくメッセージの取得
         function getString(key) {
             const strings = {
                 en: {
@@ -142,7 +129,6 @@
             return strings[language][key] || key;
         }
 
-        // 新しいルームを追加
         function addRoom() {
             const roomName = prompt(getString('newRoomPrompt'));
             if (roomName && !chatRooms[roomName]) {
@@ -152,7 +138,6 @@
             }
         }
 
-        // ルームを削除
         function deleteRoom() {
             const roomName = prompt(getString('deleteRoomPrompt'));
             if (roomName && chatRooms[roomName] && roomName !== 'default') {
@@ -167,7 +152,6 @@
             }
         }
 
-        // ルーム一覧を更新
         function updateRooms() {
             const roomsContainer = document.getElementById('rooms-container');
             roomsContainer.innerHTML = '';
@@ -179,40 +163,25 @@
             });
         }
 
-        // ルームを変更
         function changeRoom(room) {
             currentRoom = room;
-            localStorage.setItem('currentRoom', currentRoom);  // 現在のルームを保存
+            localStorage.setItem('currentRoom', currentRoom);
             document.getElementById('messages').innerHTML = '';
             chatRooms[room].forEach(message => displayMessage(message));
         }
 
-        // メッセージを表示
         function displayMessage(message) {
             const messageDiv = document.createElement('div');
             messageDiv.className = message.sender === 'user' ? 'message user-message' : 'message bot-message';
-            // メッセージを安全に表示
             messageDiv.innerHTML = DOMPurify.sanitize(message.text);
-            messageDiv.onclick = () => editMessage(message);
             document.getElementById('messages').appendChild(messageDiv);
-
-            // KaTeXによる数式のレンダリング
-            renderMathInElement(messageDiv, {
-                delimiters: [
-                    { left: "$$", right: "$$", display: true },
-                    { left: "\\[", right: "\\]", display: true },
-                    { left: "$", right: "$", display: false },
-                    { left: "\\(", right: "\\)", display: false }
-                ]
-            });
         }
 
-        // メッセージを編集
         function editMessage(message) {
             if (message.sender === 'user') {
                 const newText = prompt(getString('editMessagePrompt'), message.text);
                 if (newText !== null) {
-                    message.text = DOMPurify.sanitize(newText);  // メッセージを安全に変更
+                    message.text = DOMPurify.sanitize(newText);
                     chatRooms[currentRoom] = chatRooms[currentRoom].map(msg => msg === message ? message : msg);
                     saveChatRooms();
                     document.getElementById('messages').innerHTML = '';
@@ -221,7 +190,6 @@
             }
         }
 
-        // メッセージを送信
         async function sendMessage() {
             const userInput = document.getElementById('user-input').value;
             if (!userInput.trim()) return;
@@ -232,7 +200,7 @@
                 return;
             }
 
-            const message = { sender: 'user', text: DOMPurify.sanitize(userInput) };  // ユーザーメッセージのサニタイズ
+            const message = { sender: 'user', text: DOMPurify.sanitize(userInput) };
             chatRooms[currentRoom].push(message);
             displayMessage(message);
             document.getElementById('user-input').value = '';
@@ -249,7 +217,6 @@
             }
         }
 
-        // APIリクエストを送信
         async function sendRequest(apiKey, prompt) {
             try {
                 const response = await fetch(`${baseEndpoint}${apiKey}`, {
@@ -257,7 +224,7 @@
                     headers: {
                         'Content-Type': 'application/json',
                     },
-                    body: JSON.stringify({ prompt: { text: prompt } })  // リクエストボディの修正
+                    body: JSON.stringify({ prompt: { text: prompt } })
                 });
 
                 if (!response.ok) {
@@ -279,25 +246,21 @@
             }
         }
 
-        // 言語選択の変更
         document.getElementById('language-select').addEventListener('change', function() {
             language = this.value;
-            localStorage.setItem('language', language);  // 言語設定を保存
+            localStorage.setItem('language', language);
         });
 
-        // チャットルームをローカルストレージに保存
         function saveChatRooms() {
             localStorage.setItem('chatRooms', JSON.stringify(chatRooms));
         }
 
-        // メッセージをリセット
         function resetChat() {
             chatRooms[currentRoom] = [];
             document.getElementById('messages').innerHTML = '';
             saveChatRooms();
         }
 
-        // 初期化
         function init() {
             updateRooms();
             changeRoom(currentRoom);
